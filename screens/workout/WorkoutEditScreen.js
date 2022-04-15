@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef } from "react"
 import { useSelector, useDispatch } from "react-redux"
 import { get_exercise } from "../../store/actions/exercise"
 import { get_target } from "../../store/actions/target"
+import { get_workout_detail } from "../../store/actions/workout"
 import ReactNativePickerModule from 'react-native-picker-module'
 import tw from "twrnc"
 import { TextInput } from "react-native-gesture-handler"
@@ -10,39 +11,56 @@ import { TextInput } from "react-native-gesture-handler"
 const WorkoutEditScreen = ({ route }) => {
     const dispatch = useDispatch()
     const dispatch2 = useDispatch()
-    const [exercise, targets] = useSelector((state) => [
-        state.exercise.exercise,
+    const dispatch3 = useDispatch()
+    const [targets, exercises, workoutDetail] = useSelector((state) => [
         state.target.target,
+        state.exercise.exercise,
+        state.workout.workout_detail,
     ])
     const pickerRef = useRef()
     const pickerRef2 = useRef()
     const selectedSetIndex = useRef()
     const [selectedTarget, setSelectedTarget] = useState()
     const [selectedTargetId, setSelectedTargetId] = useState()
-    const [editedWorkoutSets, setEditedWorkoutSets] = useState(route.params.workoutDetail.sets)
+    const [editedWorkoutSets, setEditedWorkoutSets] = useState([...workoutDetail.sets])
     const targetButtonTitle = selectedTarget ? `選択中の部位：${selectedTarget}` : "部位を選択"
 
     useEffect(() => {
         const fn = async () => {
             if (dispatch && dispatch !== null && dispatch !== undefined) {
-                await dispatch(get_exercise())
-            }
-            if (dispatch2 && dispatch2 !== null && dispatch2 !== undefined) {
-                await dispatch2(get_target())
+                await dispatch(get_target())
             }
         }
         fn()
-    }, [dispatch, dispatch2])
+    }, [dispatch])
+
+    useEffect(() => {
+        const fn = async () => {
+            if (dispatch2 && dispatch2 !== null && dispatch2 !== undefined) {
+                await dispatch2(get_exercise())
+            }
+        }
+        fn()
+    }, [dispatch2])
+
+    useEffect(() => {
+        const fn = async () => {
+            if (dispatch3 && dispatch3 !== null && dispatch3 !== undefined) {
+                await dispatch3(get_workout_detail(route.params.workoutId))
+            }
+        }
+        fn()
+    }, [dispatch3])
 
     const exerciseIdToName = (id) => { // 再利用。funcディレクトリにまとめた方が良いかも。
-        const exerciseIndex = exercise.findIndex((item) => item.id === id)
-        const exerciseObj = exercise[exerciseIndex]
+        const exerciseIndex = exercises.findIndex((item) => item.id === id)
+        const exerciseObj = exercises[exerciseIndex]
         return exerciseObj.name
     }
 
     const exerciseNameToId = (exerciseName) => {
-        const exerciseIndex = exercise.findIndex((item) => item.name === exerciseName)
-        const exerciseObject = exercise[exerciseIndex]
+        const exerciseIndex = exercises.findIndex((item) => item.name === exerciseName)
+        const exerciseObject = exercises[exerciseIndex]
         return exerciseObject.id
     }
 
@@ -51,10 +69,13 @@ const WorkoutEditScreen = ({ route }) => {
         const targetObject = targets[targetIndex]
         return targetObject.id
     }
-    console.log("rendering")
+
+    const saveEditedWorkout = () => {
+
+    }
 
     return (
-        (exercise && targets) ? (
+        (exercises && targets) ? (
             < View >
                 <Text>title</Text>
                 <Button
@@ -83,13 +104,11 @@ const WorkoutEditScreen = ({ route }) => {
                                         defaultValue={`${set.weight}`}
                                         onChangeText={(text) => {
                                             selectedSetIndex.current = index
-                                            setEditedWorkoutSets(
-                                                editedWorkoutSets.map((item, index2) => {
-                                                    index2 === selectedSetIndex.current ? (
-                                                        Object.assign(item, { weight: Number(text) })
-                                                    ) : item
-                                                })
-                                            )
+                                            editedWorkoutSets.map((item, index2) => {
+                                                index2 === selectedSetIndex.current ? (
+                                                    Object.assign(item, { weight: Number(text) })
+                                                ) : item
+                                            })
                                         }}
                                     /><Text> kg   </Text>
                                     <TextInput
@@ -98,20 +117,23 @@ const WorkoutEditScreen = ({ route }) => {
                                         defaultValue={`${set.reps}`}
                                         onChangeText={(text) => {
                                             selectedSetIndex.current = index
-                                            setEditedWorkout(
-                                                editedWorkoutSets.map((item, index2) =>
-                                                    index2 === selectedSetIndex.current ? (
-                                                        Object.assign(item, { reps: Number(text) })
-                                                    ) : item
-                                                )
+                                            editedWorkoutSets.map((item, index2) =>
+                                                index2 === selectedSetIndex.current ? (
+                                                    Object.assign(item, { reps: Number(text) })
+                                                ) : item
                                             )
                                         }}
                                     /><Text> 回</Text>
                                 </View>
                             </View>
+
                         )
                     })
                 }
+                <Button
+                    title="保存"
+                    onPress={() => saveEditedWorkout()}
+                />
                 <ReactNativePickerModule
                     pickerRef={pickerRef}
                     value={selectedTarget}
@@ -127,14 +149,12 @@ const WorkoutEditScreen = ({ route }) => {
                 <ReactNativePickerModule
                     pickerRef={pickerRef2}
                     title={"種目を選択"}
-                    items={exercise
+                    items={exercises
                         .filter((item) => item.target === selectedTargetId)
                         .map((item) => item.name)}
                     confirmButton={"決定"}
                     cancelButton={"キャンセル"}
                     onValueChange={(value) => {
-                        console.log("onValueChange:")
-                        console.log(exercise)
                         const newWorkoutSets = [...editedWorkoutSets]
                         newWorkoutSets.map((item, index) =>
                             index === selectedSetIndex.current ? (

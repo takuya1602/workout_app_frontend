@@ -19,12 +19,18 @@ const WorkoutDetailScreen = ({ route, navigation }) => {
             if (dispatch && dispatch !== null && dispatch !== undefined) {
                 await dispatch(get_workout_detail(workoutId))
             }
+        }
+        fn()
+    }, [dispatch])
+
+    useEffect(() => {
+        const fn = async () => {
             if (dispatch2 && dispatch2 !== null && dispatch2 !== undefined) {
                 await dispatch2(get_exercise())
             }
         }
         fn()
-    }, [dispatch, dispatch2])
+    }, [dispatch2])
 
     const exerciseIdToName = (id) => {
         console.log("exerciseIdToName() is called")
@@ -55,7 +61,7 @@ const WorkoutDetailScreen = ({ route, navigation }) => {
                                 title="編集"
                                 onPress={() => {
                                     navigation.navigate("WorkoutEditScreen", {
-                                        workoutDetail: workoutDetail,
+                                        workoutId: workoutId,
                                     })
                                 }}
                             />
